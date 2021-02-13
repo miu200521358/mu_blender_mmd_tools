@@ -2,12 +2,16 @@
 
 import logging
 import re
+import os
 
 import bpy
 import math
 import mathutils
+from mathutils import Vector, Quaternion
 
 from miu_mmd_tools.core import vmd
+from miu_mmd_tools.core.bone import separate_local_qq
+from miu_mmd_tools.bpyutils import matmul
 from miu_mmd_tools.core.camera import MMDCamera
 from miu_mmd_tools.core.lamp import MMDLamp
 
@@ -43,6 +47,7 @@ class _FCurve:
             return set()
         #return {int(kp.co[0]+0.5) for kp in self.__fcurve.keyframe_points}
         return set(self.__get_keys(self.__fcurve.keyframe_points))
+        # return set(range(0, max(sorted(self.__fcurve.keyframe_points, key=lambda x: x.co[0]))))
 
     @staticmethod
     def getVMDControlPoints(kp0, kp1):
@@ -254,29 +259,201 @@ class VMDExporter:
                 bone_curves[3+fcurve.array_index+1].setFCurve(fcurve)
 
         for bone, bone_curves in anim_bones.items():
-            key_name = bone.mmd_bone.name_j or bone.name
-            assert(key_name not in vmd_bone_anim) # VMD bone name collision
-            frame_keys = vmd_bone_anim[key_name]
+            if bone.mmd_bone.target_multi_bone:
+                # 多段出力対象
 
-            get_xyzw = self.__xyzw_from_rotation_mode(bone.rotation_mode)
-            converter = self.__bone_converter_cls(bone, self.__scale, invert=True)
-            prev_rot = None
-            for frame_number, x, y, z, rw, rx, ry, rz in self.__allFrameKeys(bone_curves):
-                key = vmd.BoneFrameKey()
-                key.frame_number = frame_number - self.__frame_start
-                key.location = converter.convert_location([x[0], y[0], z[0]])
-                curr_rot = converter.convert_rotation(get_xyzw([rx[0], ry[0], rz[0], rw[0]]))
-                if prev_rot is not None:
-                    curr_rot = self.__minRotationDiff(prev_rot, curr_rot)
-                prev_rot = curr_rot
-                key.rotation = curr_rot[1:] + curr_rot[0:1] # (w, x, y, z) to (x, y, z, w)
-                #FIXME we can only choose one interpolation from (rw, rx, ry, rz) for bone's rotation
-                ir = self.__pickRotationInterpolation([rw[1], rx[1], ry[1], rz[1]])
-                ix, iy, iz = converter.convert_interpolation([x[1], y[1], z[1]])
-                key.interp = self.__getVMDBoneInterpolation(ix, iy, iz, ir)
-                frame_keys.append(key)
+                # MX ------------------------------------
+                key_name = bone.mmd_bone.name_j or bone.name
+                key_name = f'{key_name}MX'
+                assert(key_name not in vmd_bone_anim) # VMD bone name collision
+                frame_keys = vmd_bone_anim[key_name]
+
+                get_xyzw = self.__xyzw_from_rotation_mode(bone.rotation_mode)
+                converter = self.__bone_converter_cls(bone, self.__scale, invert=True)
+                prev_rot = None
+                for frame_number, x, y, z, rw, rx, ry, rz in self.__allFrameKeys(bone_curves):
+                    key = vmd.BoneFrameKey()
+                    key.frame_number = frame_number - self.__frame_start
+                    key.location = converter.convert_location([x[0], 0, 0])
+                    curr_rot = mathutils.Quaternion()
+                    key.rotation = curr_rot[1:] + curr_rot[0:1]
+                    ix, iy, iz = converter.convert_interpolation([x[1], ((20, 20), (107, 107)), ((20, 20), (107, 107))])
+                    key.interp = self.__getVMDBoneInterpolation(ix, ((20, 20), (107, 107)), ((20, 20), (107, 107)), ((20, 20), (107, 107)))
+                    frame_keys.append(key)
+
+                logging.info(f'[MX] (bone) frames:%5d  name: %s', len(frame_keys), key_name)
+
+                # MY ------------------------------------
+                key_name = bone.mmd_bone.name_j or bone.name
+                key_name = f'{key_name}MY'
+                assert(key_name not in vmd_bone_anim) # VMD bone name collision
+                frame_keys = vmd_bone_anim[key_name]
+
+                get_xyzw = self.__xyzw_from_rotation_mode(bone.rotation_mode)
+                converter = self.__bone_converter_cls(bone, self.__scale, invert=True)
+                prev_rot = None
+                for frame_number, x, y, z, rw, rx, ry, rz in self.__allFrameKeys(bone_curves):
+                    key = vmd.BoneFrameKey()
+                    key.frame_number = frame_number - self.__frame_start
+                    key.location = converter.convert_location([0, y[0], 0])
+                    curr_rot = mathutils.Quaternion()
+                    key.rotation = curr_rot[1:] + curr_rot[0:1]
+                    ix, iy, iz = converter.convert_interpolation([((20, 20), (107, 107)), y[1], ((20, 20), (107, 107))])
+                    key.interp = self.__getVMDBoneInterpolation(((20, 20), (107, 107)), iy, ((20, 20), (107, 107)), ((20, 20), (107, 107)))
+                    frame_keys.append(key)
+
+                logging.info(f'[MY] (bone) frames:%5d  name: %s', len(frame_keys), key_name)
+
+                # MZ ------------------------------------
+                key_name = bone.mmd_bone.name_j or bone.name
+                key_name = f'{key_name}MZ'
+                assert(key_name not in vmd_bone_anim) # VMD bone name collision
+                frame_keys = vmd_bone_anim[key_name]
+
+                get_xyzw = self.__xyzw_from_rotation_mode(bone.rotation_mode)
+                converter = self.__bone_converter_cls(bone, self.__scale, invert=True)
+                prev_rot = None
+                for frame_number, x, y, z, rw, rx, ry, rz in self.__allFrameKeys(bone_curves):
+                    key = vmd.BoneFrameKey()
+                    key.frame_number = frame_number - self.__frame_start
+                    key.location = converter.convert_location([0, 0, z[0]])
+                    curr_rot = mathutils.Quaternion()
+                    key.rotation = curr_rot[1:] + curr_rot[0:1]
+                    ix, iy, iz = converter.convert_interpolation([((20, 20), (107, 107)), ((20, 20), (107, 107)), z[1]])
+                    key.interp = self.__getVMDBoneInterpolation(((20, 20), (107, 107)), ((20, 20), (107, 107)), iz, ((20, 20), (107, 107)))
+                    frame_keys.append(key)
+
+                logging.info(f'[MZ] (bone) frames:%5d  name: %s', len(frame_keys), key_name)
+
+                # RX ------------------------------------
+                key_name = bone.mmd_bone.name_j or bone.name
+                key_name = f'{key_name}RX'
+                assert(key_name not in vmd_bone_anim) # VMD bone name collision
+                frame_keys = vmd_bone_anim[key_name]
+
+                get_xyzw = self.__xyzw_from_rotation_mode(bone.rotation_mode)
+                converter = self.__bone_converter_cls(bone, self.__scale, invert=True)
+                prev_rot = None
+                for frame_number, x, y, z, rw, rx, ry, rz in self.__allFrameKeys(bone_curves):
+                    key = vmd.BoneFrameKey()
+                    key.frame_number = frame_number - self.__frame_start
+                    key.location = converter.convert_location([0, 0, 0])
+
+                    rot = mathutils.Quaternion([rw[0], rx[0], ry[0], rz[0]])
+                    if rot != mathutils.Quaternion():
+                        rot = converter.convert_rotation_from_qq(rot)
+                        x_qq, y_qq, z_qq = separate_local_qq(rot, bone)
+                        curr_rot = x_qq
+                        if prev_rot is not None:
+                            curr_rot = self.__minRotationDiff(prev_rot, curr_rot)
+                        prev_rot = curr_rot
+                    else:
+                        curr_rot = rot
+                        prev_rot = curr_rot
+                    
+                    key.rotation = curr_rot[1:] + curr_rot[0:1] # (w, x, y, z) to (x, y, z, w)
+                    key.interp = self.__getVMDBoneInterpolation(((20, 20), (107, 107)), ((20, 20), (107, 107)), ((20, 20), (107, 107)), rx[1])
+                    frame_keys.append(key)
+
+                logging.info(f'[RX] (bone) frames:%5d  name: %s', len(frame_keys), key_name)
+
+                # RY ------------------------------------
+                key_name = bone.mmd_bone.name_j or bone.name
+                key_name = f'{key_name}RY'
+                assert(key_name not in vmd_bone_anim) # VMD bone name collision
+                frame_keys = vmd_bone_anim[key_name]
+
+                get_xyzw = self.__xyzw_from_rotation_mode(bone.rotation_mode)
+                converter = self.__bone_converter_cls(bone, self.__scale, invert=True)
+                prev_rot = None
+                for frame_number, x, y, z, rw, rx, ry, rz in self.__allFrameKeys(bone_curves):
+                    key = vmd.BoneFrameKey()
+                    key.frame_number = frame_number - self.__frame_start
+                    key.location = converter.convert_location([0, 0, 0])
+
+                    rot = mathutils.Quaternion([rw[0], rx[0], ry[0], rz[0]])
+                    if rot != mathutils.Quaternion():
+                        rot = converter.convert_rotation_from_qq(rot)
+                        x_qq, y_qq, z_qq = separate_local_qq(rot, bone)
+                        curr_rot = y_qq
+                        if prev_rot is not None:
+                            curr_rot = self.__minRotationDiff(prev_rot, curr_rot)
+                        prev_rot = curr_rot
+                    else:
+                        curr_rot = rot
+                        prev_rot = curr_rot
+                    
+                    key.rotation = curr_rot[1:] + curr_rot[0:1] # (w, x, y, z) to (x, y, z, w)
+                    key.interp = self.__getVMDBoneInterpolation(((20, 20), (107, 107)), ((20, 20), (107, 107)), ((20, 20), (107, 107)), ry[1])
+                    frame_keys.append(key)
+
+                logging.info(f'[RY] (bone) frames:%5d  name: %s', len(frame_keys), key_name)
+
+                # RZ ------------------------------------
+                key_name = bone.mmd_bone.name_j or bone.name
+                key_name = f'{key_name}RZ'
+                assert(key_name not in vmd_bone_anim) # VMD bone name collision
+                frame_keys = vmd_bone_anim[key_name]
+
+                get_xyzw = self.__xyzw_from_rotation_mode(bone.rotation_mode)
+                converter = self.__bone_converter_cls(bone, self.__scale, invert=True)
+                prev_rot = None
+                for frame_number, x, y, z, rw, rx, ry, rz in self.__allFrameKeys(bone_curves):
+                    key = vmd.BoneFrameKey()
+                    key.frame_number = frame_number - self.__frame_start
+                    key.location = converter.convert_location([0, 0, 0])
+
+                    rot = mathutils.Quaternion([rw[0], rx[0], ry[0], rz[0]])
+                    if rot != mathutils.Quaternion():
+                        rot = converter.convert_rotation_from_qq(rot)
+                        x_qq, y_qq, z_qq = separate_local_qq(rot, bone)
+                        curr_rot = z_qq
+                        if prev_rot is not None:
+                            curr_rot = self.__minRotationDiff(prev_rot, curr_rot)
+                        prev_rot = curr_rot
+                    else:
+                        curr_rot = rot
+                        prev_rot = curr_rot
+                    
+                    key.rotation = curr_rot[1:] + curr_rot[0:1] # (w, x, y, z) to (x, y, z, w)
+                    key.interp = self.__getVMDBoneInterpolation(((20, 20), (107, 107)), ((20, 20), (107, 107)), ((20, 20), (107, 107)), rz[1])
+                    frame_keys.append(key)
+
+                logging.info(f'[RZ] (bone) frames:%5d  name: %s', len(frame_keys), key_name)
+            else:
+                key_name = bone.mmd_bone.name_j or bone.name
+                assert(key_name not in vmd_bone_anim) # VMD bone name collision
+                frame_keys = vmd_bone_anim[key_name]
+
+                get_xyzw = self.__xyzw_from_rotation_mode(bone.rotation_mode)
+                converter = self.__bone_converter_cls(bone, self.__scale, invert=True)
+                prev_rot = None
+                for frame_number, x, y, z, rw, rx, ry, rz in self.__allFrameKeys(bone_curves):
+                    key = vmd.BoneFrameKey()
+                    key.frame_number = frame_number - self.__frame_start
+                    key.location = converter.convert_location([x[0], y[0], z[0]])
+                    curr_rot = converter.convert_rotation(get_xyzw([rx[0], ry[0], rz[0], rw[0]]))
+                    if prev_rot is not None:
+                        curr_rot = self.__minRotationDiff(prev_rot, curr_rot)
+                    prev_rot = curr_rot
+                    key.rotation = curr_rot[1:] + curr_rot[0:1] # (w, x, y, z) to (x, y, z, w)
+                    #FIXME we can only choose one interpolation from (rw, rx, ry, rz) for bone's rotation
+                    ir = self.__pickRotationInterpolation([rw[1], rx[1], ry[1], rz[1]])
+                    ix, iy, iz = converter.convert_interpolation([x[1], y[1], z[1]])
+                    key.interp = self.__getVMDBoneInterpolation(ix, iy, iz, ir)
+                    frame_keys.append(key)
             logging.info('(bone) frames:%5d  name: %s', len(frame_keys), key_name)
         logging.info('---- bone animations:%5d  source: %s', len(vmd_bone_anim), armObj.name)
+
+        # 終了音を鳴らす
+        if os.name == "nt":
+            # Windows
+            try:
+                import winsound
+                winsound.PlaySound("SystemAsterisk", winsound.SND_ALIAS)
+            except Exception:
+                pass
+
         return vmd_bone_anim
 
 

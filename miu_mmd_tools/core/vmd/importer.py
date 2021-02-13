@@ -81,6 +81,9 @@ class BoneConverter:
             self.__mat.invert()
         self.convert_interpolation = _InterpolationHelper(self.__mat).convert
 
+    def mat(self):
+        return self.__mat
+
     def convert_location(self, location):
         return matmul(self.__mat, Vector(location)) * self.__scale
 
@@ -88,6 +91,9 @@ class BoneConverter:
         rot = Quaternion()
         rot.x, rot.y, rot.z, rot.w = rotation_xyzw
         return Quaternion(matmul(self.__mat, rot.axis) * -1, rot.angle).normalized()
+
+    def convert_rotation_from_qq(self, qq):
+        return Quaternion(matmul(self.__mat, qq.axis) * -1, qq.angle).normalized()
 
 class BoneConverterPoseMode:
     def __init__(self, pose_bone, scale, invert=False):

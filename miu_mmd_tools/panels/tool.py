@@ -50,7 +50,7 @@ class MMDToolsObjectPanel(_PanelBase, Panel):
 
         col = row.column(align=True)
         col.label(text='Motion:', icon='ANIM')
-        col.operator('miu_mmd_tools.export_vmd', text='Multi Export')
+        col.operator('miu_mmd_tools.export_vmd', text='多段ボーン用モーション出力')
 
 
 @register_wrap

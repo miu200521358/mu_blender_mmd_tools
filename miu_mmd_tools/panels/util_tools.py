@@ -459,9 +459,9 @@ class MMD_TOOLS_UL_MultiModelBones(UIList):
 @register_wrap
 class MMDBoneOrder(_PanelBase, Panel):
     bl_idname = 'OBJECT_PT_miu_mmd_tools_multi_bone_selector'
-    bl_label = 'Multi Bone Selector'
+    bl_label = '多段対象ボーン選択'
     bl_context = ''
-    bl_options = {'DRAW_BOX'}
+    bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         layout = self.layout

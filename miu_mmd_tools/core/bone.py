@@ -417,3 +417,332 @@ class _AT_ShadowBoneCreate:
 
         self.__update_constraints()
 
+
+# ボーン関係親子のペア
+DISPLAY_BONE_PAIR = {
+    "腰": ["グルーブ", "センター"],
+    "下半身": ["腰", "グルーブ", "センター"],
+    "上半身": ["上半身先", "上半身2", "グルーブ", "センター"],
+    "上半身2": ["首"],
+    "首": ["頭"],
+    "頭": ["頭先"],
+    "肩.L": ["腕.L"],
+    "腕.L": ["ひじ.L"],
+    "ひじ.L": ["手首.L"],
+    "手首.L": ["手首先.L"],
+    "親指０.L": ["親指１.L"],
+    "親指１.L": ["親指２.L"],
+    "親指２.L": ["親指先.L"],
+    "人指０.L": ["人指１.L"],
+    "人指１.L": ["人指２.L"],
+    "人指２.L": ["人指３.L"],
+    "人指３.L": ["人指先.L"],
+    "中指０.L": ["中指１.L"],
+    "中指１.L": ["中指２.L"],
+    "中指２.L": ["中指３.L"],
+    "中指３.L": ["中指先.L"],
+    "薬指０.L": ["薬指１.L"],
+    "薬指１.L": ["薬指２.L"],
+    "薬指２.L": ["薬指３.L"],
+    "薬指３.L": ["薬指先.L"],
+    "小指０.L": ["小指１.L"],
+    "小指１.L": ["小指２.L"],
+    "小指２.L": ["小指３.L"],
+    "小指３.L": ["小指先.L"],
+    "足.L": ["ひざ"],
+    "ひざ.L": ["足首.L"],
+    "足首.L": ["つま先.L"],
+    "肩.R": ["腕.R"],
+    "腕.R": ["ひじ.R"],
+    "ひじ.R": ["手首.R"],
+    "手首.R": ["手首先.R"],
+    "親指０.R": ["親指１.R"],
+    "親指１.R": ["親指２.R"],
+    "親指２.R": ["親指先.R"],
+    "人指０.R": ["人指１.R"],
+    "人指１.R": ["人指２.R"],
+    "人指２.R": ["人指３.R"],
+    "人指３.R": ["人指先.R"],
+    "中指０.R": ["中指１.R"],
+    "中指１.R": ["中指２.R"],
+    "中指２.R": ["中指３.R"],
+    "中指３.R": ["中指先.R"],
+    "薬指０.R": ["薬指１.R"],
+    "薬指１.R": ["薬指２.R"],
+    "薬指２.R": ["薬指３.R"],
+    "薬指３.R": ["薬指先.R"],
+    "小指０.R": ["小指１.R"],
+    "小指１.R": ["小指２.R"],
+    "小指２.R": ["小指３.R"],
+    "小指３.R": ["小指先.R"],
+    "足.R": ["ひざ"],
+    "ひざ.R": ["足首.R"],
+    "足首.R": ["つま先.R"],
+}
+
+# 軸計算用のX軸取得
+def get_global_x_axis(bone: bpy.types.Bone):
+    if bone.name not in DISPLAY_BONE_PAIR:
+        return bone.vector.normalized()
+
+    for cbone in bone.children_recursive:
+        if cbone.name in DISPLAY_BONE_PAIR[bone.name]:
+            return (cbone.head - bone.head).normalized()
+
+    return bone.vector.normalized()
+    
+# クォータニオンをローカル軸の回転量に分離
+def separate_local_qq(qq: Quaternion, bone: bpy.types.Bone):
+    if bone.name.endswith(".R"):
+        # 右手系
+        return separate_local_qq_by_right(qq, bone) 
+    elif bone.name.endswith(".L"):
+        # 左手系
+        return separate_local_qq_by_right(qq, bone) 
+
+    # ローカル座標系（ボーンベクトルが（1，0，0）になる空間）の向き
+    local_axis = Vector((1, 0, 0))
+
+    global_x_axis = get_global_x_axis(bone)
+    
+    # グローバル座標系（Ａスタンス）からローカル座標系（ボーンベクトルが（0，0，1）になる空間）への変換
+    global2local_qq = global_x_axis.rotation_difference(local_axis)
+    local2global_qq = local_axis.rotation_difference(global_x_axis)
+
+    # Z成分を抽出する ------------
+
+    mat_z1_r1 = Matrix.Identity(3)
+    mat_z1_r1.rotate(qq)
+
+    mat_z1_vec = (mat_z1_r1.to_4x4() @ global_x_axis).normalized()
+
+    # YZの回転量（自身のねじれを無視する）
+    xy_qq = global_x_axis.rotation_difference(mat_z1_vec)
+
+    # 除去されたX成分を求める
+    mat_z2 = Matrix.Identity(3)
+    mat_z2.rotate(qq)
+
+    mat_z3 = Matrix.Identity(3)
+    mat_z3.rotate(xy_qq)
+
+    z_qq = (mat_z2 @ mat_z3.inverted()).to_quaternion()
+
+    # XY回転からY成分を抽出する --------------
+
+    mat_y1_r1 = Matrix.Identity(3)
+    mat_y1_r1.rotate(xy_qq)
+    mat_y1_r1.rotate(global2local_qq)
+
+    mat_y1_vec = (mat_y1_r1.to_4x4() @ local_axis).normalized()
+    mat_y1_vec.y = 0
+
+    # ローカル軸からZを潰した移動への回転量
+    local_z_qq = local_axis.rotation_difference(mat_y1_vec)
+
+    # ボーンローカル座標系の回転をグローバル座標系の回転に戻す
+    mat_y2_r1 = Matrix.Identity(3)
+    mat_y2_r1.rotate(local_z_qq)
+    mat_y2_r1.rotate(local2global_qq)
+
+    y_qq = mat_y2_r1.to_quaternion()
+
+    # XY回転からX成分だけ取り出す -----------
+    
+    mat_x1_r1 = Matrix.Identity(3)
+    mat_x1_r1.rotate(xy_qq)
+
+    mat_x1_r2 = Matrix.Identity(3)
+    mat_x1_r2.rotate(y_qq)
+
+    mat_x2_qq = (mat_x1_r1 @ mat_x1_r2.inverted()).to_quaternion()
+
+    # X成分の捻れが混入したので、XY回転からYZ回転を取り出すことでXキャンセルをかける。
+
+    mat_x3_r1 = Matrix.Identity(3)
+    mat_x3_r1.rotate(mat_x2_qq)  
+    
+    mat_x3_vec = (mat_x3_r1.to_4x4() @ global_x_axis).normalized()
+
+    x_qq = global_x_axis.rotation_difference(mat_x3_vec)
+
+    # Zを再度求める -------------
+
+    mat_z4_r1 = Matrix.Identity(3)
+    mat_z4_r1.rotate(qq)
+
+    mat_z4_r2 = Matrix.Identity(3)
+    mat_z4_r2.rotate(y_qq)
+
+    mat_z4_r3 = Matrix.Identity(3)
+    mat_z4_r3.rotate(x_qq)
+
+    z_qq = (mat_z4_r2.inverted() @ mat_z4_r1 @ mat_z4_r3.inverted()).to_quaternion()
+
+    return x_qq, y_qq, z_qq
+
+# クォータニオンをローカル軸の回転量に分離(右手系)
+def separate_local_qq_by_right(qq: Quaternion, bone: bpy.types.Bone):
+    # ローカル座標系（ボーンベクトルが（1，0，0）になる空間）の向き
+    local_axis = Vector((1, 0, 0))
+
+    global_x_axis = get_global_x_axis(bone)
+
+    # グローバル座標系（Ａスタンス）からローカル座標系（ボーンベクトルが（0，0，1）になる空間）への変換
+    global2local_qq = global_x_axis.rotation_difference(local_axis)
+    local2global_qq = local_axis.rotation_difference(global_x_axis)
+
+    # Y成分を抽出する ------------
+
+    mat_y1_r1 = Matrix.Identity(3)
+    mat_y1_r1.rotate(qq)
+
+    mat_y1_vec = (mat_y1_r1.to_4x4() @ global_x_axis).normalized()
+
+    # XZの回転量（自身のねじれを無視する）
+    xz_qq = global_x_axis.rotation_difference(mat_y1_vec)
+
+    # 除去されたX成分を求める
+    mat_y2 = Matrix.Identity(3)
+    mat_y2.rotate(qq)
+
+    mat_y3 = Matrix.Identity(3)
+    mat_y3.rotate(xz_qq)
+
+    y_qq = (mat_y2 @ mat_y3.inverted()).to_quaternion()
+
+    # XZ回転からX成分を抽出する --------------
+
+    mat_x1_r1 = Matrix.Identity(3)
+    mat_x1_r1.rotate(xz_qq)
+    mat_x1_r1.rotate(global2local_qq)
+
+    mat_x1_vec = (mat_x1_r1.to_4x4() @ local_axis).normalized()
+    mat_x1_vec.x = 0
+
+    # ローカル軸からZを潰した移動への回転量
+    local_z_qq = local_axis.rotation_difference(mat_x1_vec)
+
+    # ボーンローカル座標系の回転をグローバル座標系の回転に戻す
+    mat_x2_r1 = Matrix.Identity(3)
+    mat_x2_r1.rotate(local_z_qq)
+    mat_x2_r1.rotate(local2global_qq)
+
+    x_qq = mat_x2_r1.to_quaternion()
+
+    # XZ回転からZ成分だけ取り出す -----------
+    
+    mat_z1_r1 = Matrix.Identity(3)
+    mat_z1_r1.rotate(xz_qq)
+
+    mat_z1_r2 = Matrix.Identity(3)
+    mat_z1_r2.rotate(x_qq)
+
+    mat_z2_qq = (mat_z1_r1 @ mat_z1_r2.inverted()).to_quaternion()
+
+    # Y成分の捻れが混入したので、XY回転からYZ回転を取り出すことでXキャンセルをかける。
+
+    mat_z3_r1 = Matrix.Identity(3)
+    mat_z3_r1.rotate(mat_z2_qq)
+    
+    mat_z3_vec = (mat_z3_r1.to_4x4() @ global_x_axis).normalized()
+
+    z_qq = global_x_axis.rotation_difference(mat_z3_vec)
+
+    # Yを再度求める -------------
+
+    mat_y4_r1 = Matrix.Identity(3)
+    mat_y4_r1.rotate(qq)
+
+    mat_y4_r2 = Matrix.Identity(3)
+    mat_y4_r2.rotate(x_qq)
+
+    mat_y4_r3 = Matrix.Identity(3)
+    mat_y4_r3.rotate(z_qq)
+
+    y_qq = (mat_y4_r1 @ mat_y4_r2.inverted() @ mat_y4_r3.inverted()).to_quaternion()
+
+    return z_qq, y_qq, x_qq
+
+# クォータニオンをローカル軸の回転量に分離(左手系)
+def separate_local_qq_by_left(qq: Quaternion, bone: bpy.types.Bone):
+    # ローカル座標系（ボーンベクトルが（1，0，0）になる空間）の向き
+    local_axis = Vector((1, 0, 0))
+
+    global_x_axis = get_global_x_axis(bone)
+
+    # グローバル座標系（Ａスタンス）からローカル座標系（ボーンベクトルが（0，0，1）になる空間）への変換
+    global2local_qq = global_x_axis.rotation_difference(local_axis)
+    local2global_qq = local_axis.rotation_difference(global_x_axis)
+
+    # X成分を抽出する ------------
+
+    mat_x1_r1 = Matrix.Identity(3)
+    mat_x1_r1.rotate(qq)
+
+    mat_x1_vec = (mat_x1_r1.to_4x4() @ global_x_axis).normalized()
+
+    # YZの回転量（自身のねじれを無視する）
+    yz_qq = global_x_axis.rotation_difference(mat_x1_vec)
+
+    # 除去されたX成分を求める
+    mat_x2 = Matrix.Identity(3)
+    mat_x2.rotate(qq)
+
+    mat_x3 = Matrix.Identity(3)
+    mat_x3.rotate(yz_qq)
+
+    x_qq = (mat_x2 @ mat_x3.inverted()).to_quaternion()
+
+    # YZ回転からZ成分を抽出する --------------
+
+    mat_z1_r1 = Matrix.Identity(3)
+    mat_z1_r1.rotate(yz_qq)
+    mat_z1_r1.rotate(global2local_qq)
+
+    mat_z1_vec = (mat_z1_r1.to_4x4() @ local_axis).normalized()
+    mat_z1_vec.z = 0
+
+    # ローカル軸からZを潰した移動への回転量
+    local_z_qq = local_axis.rotation_difference(mat_z1_vec)
+
+    # ボーンローカル座標系の回転をグローバル座標系の回転に戻す
+    mat_z2_r1 = Matrix.Identity(3)
+    mat_z2_r1.rotate(local_z_qq)
+    mat_z2_r1.rotate(local2global_qq)
+
+    z_qq = mat_z2_r1.to_quaternion()
+
+    # YZ回転からY成分だけ取り出す -----------
+    
+    mat_y1_r1 = Matrix.Identity(3)
+    mat_y1_r1.rotate(yz_qq)
+
+    mat_y1_r2 = Matrix.Identity(3)
+    mat_y1_r2.rotate(z_qq)
+
+    mat_y2_qq = (mat_y1_r1 @ mat_y1_r2.inverted()).to_quaternion()
+
+    # X成分の捻れが混入したので、YZ回転からX回転を取り出すことでXキャンセルをかける。
+
+    mat_y3_r1 = Matrix.Identity(3)
+    mat_y3_r1.rotate(mat_y2_qq)
+    
+    mat_y3_vec = (mat_y3_r1.to_4x4() @ global_x_axis).normalized()
+
+    y_qq = global_x_axis.rotation_difference(mat_y3_vec)
+
+    # Xを再度求める -------------
+
+    mat_z4_r1 = Matrix.Identity(3)
+    mat_z4_r1.rotate(qq)
+
+    mat_z4_r2 = Matrix.Identity(3)
+    mat_z4_r2.rotate(y_qq)
+
+    mat_z4_r3 = Matrix.Identity(3)
+    mat_z4_r3.rotate(z_qq)
+
+    x_qq = (mat_z4_r2.inverted() @ mat_z4_r1 @ mat_z4_r3.inverted()).to_quaternion()
+
+    return x_qq, y_qq, z_qq

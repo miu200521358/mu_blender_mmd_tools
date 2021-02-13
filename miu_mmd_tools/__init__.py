@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
 bl_info = {
-    "name": "miu_miu_mmd_tools",
+    "name": "miu_mmd_tools",
     "author": "sugiany",
     "version": (0, 0, 1),
     "blender": (2, 80, 0),
-    "location": "View3D > Tool Shelf > MMD Tools Panel",
+    "location": "View3D > Tool Shelf > miu MMD Tools Panel",
     "description": "Utility tools for MMD model editing. (miu's forked version)",
     "warning": "",
     "wiki_url": "",
