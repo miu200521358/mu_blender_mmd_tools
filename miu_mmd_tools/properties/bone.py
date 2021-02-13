@@ -80,6 +80,12 @@ class MMDBone(PropertyGroup):
         default=False,
         )
 
+    target_multi_bone = BoolProperty(
+        name='多段出力対象ボーン',
+        description='多段出力対象ボーン',
+        default=False,
+        )
+
     enabled_fixed_axis = BoolProperty(
         name='Fixed Axis',
         description='Use fixed axis',
