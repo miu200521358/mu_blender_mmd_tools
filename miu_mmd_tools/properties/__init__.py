@@ -58,6 +58,7 @@ __properties = {
         },
     bpy.types.PoseBone: {
         'mmd_bone': bpy.props.PointerProperty(type=bone.MMDBone),
+        'is_target_multi_bone': bpy.props.BoolProperty(name='多段出力対象ボーン', description='多段出力対象ボーン', default=False),
         'is_mmd_shadow_bone': bpy.props.BoolProperty(name='is_mmd_shadow_bone', default=False),
         'mmd_shadow_bone_type': bpy.props.StringProperty(name='mmd_shadow_bone_type'),
         'mmd_ik_toggle': bone._MMDPoseBoneProp.mmd_ik_toggle,

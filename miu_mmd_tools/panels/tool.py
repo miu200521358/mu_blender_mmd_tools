@@ -72,7 +72,6 @@ class MMDToolsObjectPanel(_PanelBase, Panel):
         # col.operator('miu_mmd_tools.curve2bone', text='カーブに沿ったボーン作成')
 
 
-@register_wrap
 class MMD_ROOT_UL_display_item_frames(UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         frame = item
@@ -92,7 +91,6 @@ class MMD_ROOT_UL_display_item_frames(UIList):
             layout.alignment = 'CENTER'
             layout.label(text="", icon_value=icon)
 
-@register_wrap
 class MMD_ROOT_UL_display_items(UIList):
     morph_filter = bpy.props.EnumProperty(
         name="Morph Filter",
@@ -174,7 +172,6 @@ class MMD_ROOT_UL_display_items(UIList):
         row.prop(self, 'mmd_name', expand=True)
 
 
-@register_wrap
 class MMDDisplayItemFrameMenu(Menu):
     bl_idname = 'OBJECT_MT_miu_mmd_tools_display_item_frame_menu'
     bl_label = 'Display Item Frame Menu'
@@ -186,7 +183,6 @@ class MMDDisplayItemFrameMenu(Menu):
         layout.operator('miu_mmd_tools.display_item_frame_move', icon=TRIA_UP_BAR, text='Move To Top').type = 'TOP'
         layout.operator('miu_mmd_tools.display_item_frame_move', icon=TRIA_DOWN_BAR, text='Move To Bottom').type = 'BOTTOM'
 
-@register_wrap
 class MMDDisplayItemMenu(Menu):
     bl_idname = 'OBJECT_MT_miu_mmd_tools_display_item_menu'
     bl_label = 'Display Item Menu'
@@ -259,7 +255,6 @@ class MMDDisplayItemsPanel(_PanelBase, Panel):
         row.operator('miu_mmd_tools.display_item_select_current', text='Select')
 
 
-@register_wrap
 class MMD_TOOLS_UL_Morphs(UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         mmd_root = data
@@ -282,7 +277,6 @@ class MMD_TOOLS_UL_Morphs(UIList):
             layout.alignment = 'CENTER'
             layout.label(text="", icon_value=icon)
 
-@register_wrap
 class MMD_TOOLS_UL_MaterialMorphOffsets(UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         if self.layout_type in {'DEFAULT'}:
@@ -297,7 +291,6 @@ class MMD_TOOLS_UL_MaterialMorphOffsets(UIList):
             layout.alignment = 'CENTER'
             layout.label(text="", icon_value=icon)
 
-@register_wrap
 class MMD_TOOLS_UL_UVMorphOffsets(UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         if self.layout_type in {'DEFAULT'}:
@@ -309,7 +302,6 @@ class MMD_TOOLS_UL_UVMorphOffsets(UIList):
             layout.alignment = 'CENTER'
             layout.label(text="", icon_value=icon)
 
-@register_wrap
 class MMD_TOOLS_UL_BoneMorphOffsets(UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         if self.layout_type in {'DEFAULT'}:
@@ -321,7 +313,6 @@ class MMD_TOOLS_UL_BoneMorphOffsets(UIList):
             layout.alignment = 'CENTER'
             layout.label(text="", icon_value=icon)
 
-@register_wrap
 class MMD_TOOLS_UL_GroupMorphOffsets(UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         if self.layout_type in {'DEFAULT'}:
@@ -339,7 +330,6 @@ class MMD_TOOLS_UL_GroupMorphOffsets(UIList):
             layout.alignment = 'CENTER'
             layout.label(text="", icon_value=icon)
 
-@register_wrap
 class MMDMorphMenu(Menu):
     bl_idname = 'OBJECT_MT_miu_mmd_tools_morph_menu'
     bl_label = 'Morph Menu'
@@ -567,7 +557,6 @@ class MMDMorphToolsPanel(_PanelBase, Panel):
         row.prop(item, 'morph_type', text='')
 
 
-@register_wrap
 class UL_ObjectsMixIn(object):
     model_filter = bpy.props.EnumProperty(
         name="Model Filter",
@@ -626,7 +615,6 @@ class UL_ObjectsMixIn(object):
             flt_neworder[i_orig] = i_new
         return flt_flags, flt_neworder
 
-@register_wrap
 class MMD_TOOLS_UL_rigidbodies(UIList, UL_ObjectsMixIn):
     mmd_type = 'RIGID_BODY'
     icon = 'MESH_ICOSPHERE'
@@ -639,7 +627,6 @@ class MMD_TOOLS_UL_rigidbodies(UIList, UL_ObjectsMixIn):
         elif not item.mmd_rigid.bone:
             layout.label(icon='BONE_DATA')
 
-@register_wrap
 class MMDRigidbodySelectMenu(Menu):
     bl_idname = 'OBJECT_MT_miu_mmd_tools_rigidbody_select_menu'
     bl_label = 'Rigidbody Select Menu'
@@ -652,7 +639,6 @@ class MMDRigidbodySelectMenu(Menu):
         layout.operator_context = 'EXEC_DEFAULT'
         layout.operator_enum('miu_mmd_tools.rigid_body_select', 'properties')
 
-@register_wrap
 class MMDRigidbodyMenu(Menu):
     bl_idname = 'OBJECT_MT_miu_mmd_tools_rigidbody_menu'
     bl_label = 'Rigidbody Menu'
@@ -699,7 +685,6 @@ class MMDRigidbodySelectorPanel(_PanelBase, Panel):
         tb1.operator('miu_mmd_tools.object_move', text='', icon='TRIA_DOWN').type = 'DOWN'
 
 
-@register_wrap
 class MMD_TOOLS_UL_joints(UIList, UL_ObjectsMixIn):
     mmd_type = 'JOINT'
     icon = 'CONSTRAINT'
@@ -714,7 +699,7 @@ class MMD_TOOLS_UL_joints(UIList, UL_ObjectsMixIn):
         elif rbc.object1 == rbc.object2:
             layout.label(icon='MESH_CUBE')
 
-@register_wrap
+
 class MMDJointMenu(Menu):
     bl_idname = 'OBJECT_MT_miu_mmd_tools_joint_menu'
     bl_label = 'Joint Menu'

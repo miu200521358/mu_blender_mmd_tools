@@ -426,7 +426,6 @@ class PMXImporter:
             mmd_bone.is_controllable = pmx_bone.isControllable
             mmd_bone.transform_order = pmx_bone.transform_order
             mmd_bone.transform_after_dynamics = pmx_bone.transAfterPhis
-            mmd_bone.target_multi_bone = False
 
             if pmx_bone.displayConnection == -1 or pmx_bone.displayConnection == (0.0, 0.0, 0.0):
                 mmd_bone.is_tip = True

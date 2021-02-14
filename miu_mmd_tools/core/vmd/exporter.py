@@ -264,7 +264,7 @@ class VMDExporter:
                 bone_curves[3+fcurve.array_index+1].setFCurve(fcurve)
 
         for bone, bone_curves in anim_bones.items():
-            if bone.mmd_bone.target_multi_bone:
+            if bone.is_target_multi_bone:
                 # 多段出力対象
 
                 # MX ------------------------------------

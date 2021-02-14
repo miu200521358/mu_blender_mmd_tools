@@ -16,7 +16,6 @@ if bpy.app.version < (2, 71, 0):
     ICON_APPEND_MOVE, ICON_APPEND_ROT, ICON_APPEND_MOVE_ROT = 'NDOF_TRANS', 'NDOF_TURN', 'FORCE_MAGNETIC'
 
 
-@register_wrap
 class MMD_TOOLS_UL_Materials(UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         if self.layout_type in {'DEFAULT'}:
@@ -61,7 +60,6 @@ class MMDMaterialSorter(_PanelBase, Panel):
         tb1.operator('miu_mmd_tools.move_material_up', text='', icon='TRIA_UP')
         tb1.operator('miu_mmd_tools.move_material_down', text='', icon='TRIA_DOWN')
 
-@register_wrap
 class MMD_TOOLS_UL_ModelMeshes(UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         if self.layout_type in {'DEFAULT'}:
@@ -129,7 +127,7 @@ class _DummyVertexGroup:
     def __init__(self, index):
         self.index = index
 
-@register_wrap
+
 class MMD_TOOLS_UL_ModelBones(UIList):
     _IK_MAP = {}
     _IK_BONES = {}
@@ -442,7 +440,7 @@ class MMD_TOOLS_UL_MultiModelBones(UIList):
             r0.label(text=bone_name, translate=False, icon='POSE_HLT' if bone_name in cls._IK_BONES else 'BONE_DATA')
 
             row = row.row(align=True)
-            row.prop(mmd_bone, 'target_multi_bone', text='', toggle=True)
+            row.prop(bone, 'is_target_multi_bone', text='', toggle=True)
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         if self.layout_type in {'DEFAULT'}:
