@@ -96,6 +96,9 @@ class MMDToolsAddonPreferences(bpy.types.AddonPreferences):
         layout.prop(self, "non_collision_threshold")
 
 
+def menu_func_import(self, context):
+    self.layout.operator(operators.fileio.ImportVmd.bl_idname, text='MikuMikuDance Motion (.vmd)', icon='ANIM')
+
 def menu_func_export(self, context):
     self.layout.operator(operators.fileio.ExportVmd.bl_idname, text='MikuMikuDance Motion (.vmd)', icon='ANIM')
 
@@ -118,16 +121,20 @@ def register():
     bpy.app.handlers.load_post.append(load_handler)
     bpy.types.VIEW3D_HT_header.append(header_view3d_pose_draw)
     if bpy.app.version < (2, 80, 0):
+        bpy.types.INFO_MT_file_import.append(menu_func_import)
         bpy.types.INFO_MT_file_export.append(menu_func_export)
         #bpy.context.user_preferences.system.use_scripts_auto_execute = True
     else:
+        bpy.types.INFO_MT_file_import.append(menu_func_import)
         bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
         #bpy.context.preferences.filepaths.use_scripts_auto_execute = True
 
 def unregister():
     if bpy.app.version < (2, 80, 0):
+        bpy.types.INFO_MT_file_import.remove(menu_func_import)
         bpy.types.INFO_MT_file_export.remove(menu_func_export)
     else:
+        bpy.types.INFO_MT_file_import.remove(menu_func_import)
         bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
     bpy.types.VIEW3D_HT_header.remove(header_view3d_pose_draw)
     bpy.app.handlers.load_post.remove(load_handler)
