@@ -338,8 +338,9 @@ class MMDBoneOrder(_PanelBase, Panel):
                 row.operator('object.vertex_group_move', text='', icon='TRIA_UP').direction = 'UP'
                 row.operator('object.vertex_group_move', text='', icon='TRIA_DOWN').direction = 'DOWN'
 
-## 多段出力対象ボーン選択 ------------------------------------
 
+
+## 多段出力対象ボーン選択 ------------------------------------
 
 @register_wrap
 class MMD_TOOLS_UL_MultiModelBones(UIList):

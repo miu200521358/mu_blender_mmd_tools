@@ -125,7 +125,7 @@ class VMDExporter:
         self.__bone_converter_cls = vmd.importer.BoneConverter
         self.__ik_fcurves = {}
 
-    def __allFrameKeys(self, curves):
+    def __allFrameKeys(self, curves, is_full=False):
         all_frames = set()
         for i in curves:
             all_frames |= i.frameNumbers()
@@ -142,6 +142,11 @@ class VMDExporter:
         if frame_end > self.__frame_end:
             frame_end = self.__frame_end
             all_frames.add(frame_end)
+        
+        if is_full:
+            # 全打ちの場合、全キーフレ
+            for n in range(frame_start, frame_end):
+                all_frames.add(n)
 
         all_frames = sorted(all_frames)
         all_keys = [i.sampleFrames(all_frames) for i in curves]
@@ -209,7 +214,7 @@ class VMDExporter:
         return __xyzw_from_euler
 
 
-    def __exportBoneAnimation(self, armObj):
+    def __exportBoneAnimation(self, armObj, is_full):
         if armObj is None:
             return None
         animation_data = armObj.animation_data
@@ -271,7 +276,7 @@ class VMDExporter:
                 get_xyzw = self.__xyzw_from_rotation_mode(bone.rotation_mode)
                 converter = self.__bone_converter_cls(bone, self.__scale, invert=True)
                 prev_rot = None
-                for frame_number, x, y, z, rw, rx, ry, rz in self.__allFrameKeys(bone_curves):
+                for frame_number, x, y, z, rw, rx, ry, rz in self.__allFrameKeys(bone_curves, is_full):
                     key = vmd.BoneFrameKey()
                     key.frame_number = frame_number - self.__frame_start
                     key.location = converter.convert_location([x[0], 0, 0])
@@ -292,7 +297,7 @@ class VMDExporter:
                 get_xyzw = self.__xyzw_from_rotation_mode(bone.rotation_mode)
                 converter = self.__bone_converter_cls(bone, self.__scale, invert=True)
                 prev_rot = None
-                for frame_number, x, y, z, rw, rx, ry, rz in self.__allFrameKeys(bone_curves):
+                for frame_number, x, y, z, rw, rx, ry, rz in self.__allFrameKeys(bone_curves, is_full):
                     key = vmd.BoneFrameKey()
                     key.frame_number = frame_number - self.__frame_start
                     key.location = converter.convert_location([0, y[0], 0])
@@ -313,7 +318,7 @@ class VMDExporter:
                 get_xyzw = self.__xyzw_from_rotation_mode(bone.rotation_mode)
                 converter = self.__bone_converter_cls(bone, self.__scale, invert=True)
                 prev_rot = None
-                for frame_number, x, y, z, rw, rx, ry, rz in self.__allFrameKeys(bone_curves):
+                for frame_number, x, y, z, rw, rx, ry, rz in self.__allFrameKeys(bone_curves, is_full):
                     key = vmd.BoneFrameKey()
                     key.frame_number = frame_number - self.__frame_start
                     key.location = converter.convert_location([0, 0, z[0]])
@@ -334,7 +339,7 @@ class VMDExporter:
                 get_xyzw = self.__xyzw_from_rotation_mode(bone.rotation_mode)
                 converter = self.__bone_converter_cls(bone, self.__scale, invert=True)
                 prev_rot = None
-                for frame_number, x, y, z, rw, rx, ry, rz in self.__allFrameKeys(bone_curves):
+                for frame_number, x, y, z, rw, rx, ry, rz in self.__allFrameKeys(bone_curves, is_full):
                     key = vmd.BoneFrameKey()
                     key.frame_number = frame_number - self.__frame_start
                     key.location = converter.convert_location([0, 0, 0])
@@ -366,7 +371,7 @@ class VMDExporter:
                 get_xyzw = self.__xyzw_from_rotation_mode(bone.rotation_mode)
                 converter = self.__bone_converter_cls(bone, self.__scale, invert=True)
                 prev_rot = None
-                for frame_number, x, y, z, rw, rx, ry, rz in self.__allFrameKeys(bone_curves):
+                for frame_number, x, y, z, rw, rx, ry, rz in self.__allFrameKeys(bone_curves, is_full):
                     key = vmd.BoneFrameKey()
                     key.frame_number = frame_number - self.__frame_start
                     key.location = converter.convert_location([0, 0, 0])
@@ -398,7 +403,7 @@ class VMDExporter:
                 get_xyzw = self.__xyzw_from_rotation_mode(bone.rotation_mode)
                 converter = self.__bone_converter_cls(bone, self.__scale, invert=True)
                 prev_rot = None
-                for frame_number, x, y, z, rw, rx, ry, rz in self.__allFrameKeys(bone_curves):
+                for frame_number, x, y, z, rw, rx, ry, rz in self.__allFrameKeys(bone_curves, is_full):
                     key = vmd.BoneFrameKey()
                     key.frame_number = frame_number - self.__frame_start
                     key.location = converter.convert_location([0, 0, 0])
@@ -644,6 +649,7 @@ class VMDExporter:
 
 
     def export(self, **args):
+        is_full = args.get('full', False)
         armature = args.get('armature', None)
         mesh = args.get('mesh', None)
         camera = args.get('camera', None)
@@ -663,7 +669,7 @@ class VMDExporter:
             vmdFile = vmd.File()
             vmdFile.header = vmd.Header()
             vmdFile.header.model_name = args.get('model_name', '')
-            vmdFile.boneAnimation = self.__exportBoneAnimation(armature)
+            vmdFile.boneAnimation = self.__exportBoneAnimation(armature, is_full)
             vmdFile.shapeKeyAnimation = self.__exportMorphAnimation(mesh)
             vmdFile.propertyAnimation = self.__exportPropertyAnimation(armature)
             vmdFile.save(filepath=filepath)
