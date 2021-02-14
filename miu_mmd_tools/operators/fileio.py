@@ -605,6 +605,88 @@ class ExportVmd(Operator, ExportHelper):
             'scale':self.scale,
             'use_pose_mode':self.use_pose_mode,
             'use_frame_range':self.use_frame_range,
+            'full': False,
+            }
+
+        obj = context.active_object
+        if obj.mmd_type == 'ROOT':
+            rig = mmd_model.Model(obj)
+            params['mesh'] = rig.morph_slider.placeholder(binded=True) or rig.firstMesh()
+            params['armature'] = rig.armature()
+            params['model_name'] = obj.mmd_root.name or obj.name
+        elif getattr(obj.data, 'shape_keys', None):
+            params['mesh'] = obj
+            params['model_name'] = obj.name
+        elif obj.type == 'ARMATURE':
+            params['armature'] = obj
+            params['model_name'] = obj.name
+        else:
+            for i in context.selected_objects:
+                if MMDCamera.isMMDCamera(i):
+                    params['camera'] = i
+                elif MMDLamp.isMMDLamp(i):
+                    params['lamp'] = i
+
+        try:
+            start_time = time.time()
+            vmd_exporter.VMDExporter().export(**params)
+            logging.info(' Finished exporting motion in %f seconds.', time.time() - start_time)
+        except Exception as e:
+            err_msg = traceback.format_exc()
+            logging.error(err_msg)
+            self.report({'ERROR'}, err_msg)
+
+        return {'FINISHED'}
+
+@register_wrap
+class ExportFullVmd(Operator, ExportHelper):
+    bl_idname = 'miu_mmd_tools.export_full_vmd'
+    bl_label = 'Export VMD File (.vmd)'
+    bl_description = 'Export motion data of active object to a VMD file (.vmd)'
+    bl_options = {'PRESET'}
+
+    filename_ext = '.vmd'
+    filter_glob = bpy.props.StringProperty(default='*.vmd', options={'HIDDEN'})
+
+    scale = bpy.props.FloatProperty(
+        name='Scale',
+        description='Scaling factor for exporting the motion',
+        default=1.0,
+        )
+    use_pose_mode = bpy.props.BoolProperty(
+        name='Treat Current Pose as Rest Pose',
+        description='You can pose the model to export a motion data to different pose base, such as T-Pose or A-Pose',
+        default=False,
+        options={'SKIP_SAVE'},
+        )
+    use_frame_range = bpy.props.BoolProperty(
+        name='Use Frame Range',
+        description = 'Export frames only in the frame range of context scene',
+        default = False,
+        )
+
+    @classmethod
+    def poll(cls, context):
+        obj = context.active_object
+        if obj is None:
+            return False
+
+        if obj.mmd_type == 'ROOT':
+            return True
+        if obj.mmd_type == 'NONE' and (obj.type == 'ARMATURE' or getattr(obj.data, 'shape_keys', None)):
+            return True
+        if MMDCamera.isMMDCamera(obj) or MMDLamp.isMMDLamp(obj):
+            return True
+
+        return False
+
+    def execute(self, context):
+        params = {
+            'filepath':self.filepath,
+            'scale':self.scale,
+            'use_pose_mode':self.use_pose_mode,
+            'use_frame_range':self.use_frame_range,
+            'full': True,
             }
 
         obj = context.active_object
