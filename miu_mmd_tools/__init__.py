@@ -97,10 +97,11 @@ class MMDToolsAddonPreferences(bpy.types.AddonPreferences):
 
 
 def menu_func_import(self, context):
-    self.layout.operator(operators.fileio.ImportVmd.bl_idname, text='MikuMikuDance Motion (.vmd)', icon='ANIM')
+    self.layout.operator(operators.fileio.ImportPmx.bl_idname, text='[miu] MikuMikuDance Model (.pmd, .pmx)', icon='OUTLINER_OB_ARMATURE')
+    self.layout.operator(operators.fileio.ImportVmd.bl_idname, text='[miu] MikuMikuDance Motion (.vmd)', icon='ANIM')
 
 def menu_func_export(self, context):
-    self.layout.operator(operators.fileio.ExportVmd.bl_idname, text='MikuMikuDance Motion (.vmd)', icon='ANIM')
+    self.layout.operator(operators.fileio.ExportVmd.bl_idname, text='[miu] MikuMikuDance Motion (.vmd)', icon='ANIM')
 
 def header_view3d_pose_draw(self, context):
     obj = context.active_object
