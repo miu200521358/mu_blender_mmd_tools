@@ -49,11 +49,11 @@ class MMDToolsObjectPanel(_PanelBase, Panel):
         row = layout.row()
         col = row.column(align=True)
         col.label(text='Model:', icon='OUTLINER_OB_ARMATURE')
-        col.operator('mmd_tools.import_model', text='Import')
+        col.operator('miu_mmd_tools.import_model', text='Import')
 
         col = row.column(align=True)
         col.label(text='Motion:', icon='ANIM')
-        col.operator('mmd_tools.import_vmd', text='Import')
+        col.operator('miu_mmd_tools.import_vmd', text='Import')
 
         layout.separator()
 
