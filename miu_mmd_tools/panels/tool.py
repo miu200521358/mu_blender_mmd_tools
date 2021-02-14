@@ -65,11 +65,11 @@ class MMDToolsObjectPanel(_PanelBase, Panel):
         col = row.column(align=True)
         col.operator('miu_mmd_tools.export_full_vmd', text='多段全打ちモーション出力')
 
-        # layout.separator()
+        layout.separator()
 
-        # row = layout.row()
-        # col = row.column(align=True)
-        # col.operator('miu_mmd_tools.curve2bone', text='カーブに沿ったボーン作成')
+        row = layout.row()
+        col = row.column(align=True)
+        col.operator('miu_mmd_tools.curve2bone', text='カーブに沿ったボーン作成')
 
 
 class MMD_ROOT_UL_display_item_frames(UIList):

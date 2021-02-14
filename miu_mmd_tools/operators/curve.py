@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import copy
 
 import bpy
 import logging
@@ -8,22 +9,39 @@ from miu_mmd_tools import register_wrap
 from bpy.types import Operator
 
 @register_wrap
-class ExportFullVmd(Operator):
+class Curve2Bone(Operator):
     bl_idname = 'miu_mmd_tools.curve2bone'
-    bl_label = 'Curve to Bone'
-    bl_description = 'カーブの制御点に沿ったボーンを出力します。'
+    bl_label = 'カーブに沿ったボーン生成'
+    bl_description = 'カーブの制御点を指定個数ごと繋いで沿ったボーンを出力します。\nオブジェクトモードでカーブを選択してから、クリックして下さい。'
     bl_options = {'REGISTER', 'UNDO'}
 
-    # メニューを実行したときに呼ばれる関数
+    join_cnt = bpy.props.IntProperty(
+        name='join_cnt',
+        description='制御点何個おきにボーンを生成するか',
+        default=1,
+        min=1,
+    )
+
     def execute(self, context):
         level, message = self.curve2bone()
         self.report({level}, message)
         return {'FINISHED'}
 
+    def invoke(self, context, event):
+        vm = context.window_manager
+        return vm.invoke_props_dialog(self)
+
     # カーブの制御点にボーン生成
     def curve2bone(self):
         D = bpy.data
         C = bpy.context
+
+        # 3Dカーソルの元の位置を記録しておく(参照型のコピー)
+        cursorpos = copy.copy(bpy.context.scene.cursor.location)
+        # 3Dカーソルの位置をワールド原点に移動する
+        bpy.context.scene.cursor.location = (0, 0, 0)
+        # オブジェクトの原点を3Dカーソル位置に移動する
+        bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
 
         # カーブの制御点をアーマチュアのボーンに変換する
         if not hasattr(C, 'active_object'):
@@ -86,23 +104,28 @@ class ExportFullVmd(Operator):
                     head_point = point
                     continue
 
-                # if pidx % 2 == 1 or pidx == len(spline.points) - 1:
+                if pidx % self.join_cnt == 0 or pidx == len(spline.points) - 1:
                     # 1個飛ばしもしくは最後のみボーン追加
 
-                # ボーン追加
-                b = amt.edit_bones.new('Bone')
-                b.head = (head_point.co[0] - top_mean_point[0], head_point.co[1] - top_mean_point[1], head_point.co[2] - top_mean_point[2])
-                b.tail = (point.co[0] - top_mean_point[0], point.co[1] - top_mean_point[1], point.co[2] - top_mean_point[2])
-                b.name = f'curve_bone_{sidx+1}_{pidx}'
+                    # ボーン追加
+                    b = amt.edit_bones.new('Bone')
+                    b.head = (head_point.co[0] - top_mean_point[0], head_point.co[1] - top_mean_point[1], head_point.co[2] - top_mean_point[2])
+                    b.tail = (point.co[0] - top_mean_point[0], point.co[1] - top_mean_point[1], point.co[2] - top_mean_point[2])
+                    b.name = f'curve_bone_{sidx+1}_{pidx}'
 
-                if parent_bone:
-                    # 親ボーンが居る場合、定義
-                    b.parent = parent_bone
-                
-                # 親ボーンとして保持
-                parent_bone = b
-                # 根元ボーンとして保持
-                head_point = point
+                    if parent_bone:
+                        # 親ボーンが居る場合、定義
+                        b.parent = parent_bone
+                    
+                    # 親ボーンとして保持
+                    parent_bone = b
+
+                    # 根元ボーンとして保持
+                    head_point = point
+
+        # 3Dカーソルの位置を元に戻す
+        bpy.context.scene.cursor.location = cursorpos
 
         return 'INFO', "ボーン追加成功"
+
         

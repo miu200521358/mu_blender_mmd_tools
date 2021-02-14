@@ -3,7 +3,7 @@
 bl_info = {
     "name": "miu_mmd_tools",
     "author": "sugiany",
-    "version": (0, 0, 1),
+    "version": (0, 2, 0),
     "blender": (2, 80, 0),
     "location": "View3D > Tool Shelf > miu MMD Tools Panel",
     "description": "Utility tools for MMD model editing. (miu's forked version)",
